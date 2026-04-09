@@ -1,0 +1,442 @@
+:root {
+  --color1: #58706d;
+  --color2: #4b5757;
+  --color3: #7c8a6e;
+  --color4: #b0b087;
+  --color5: #e3e3d1;
+
+  --bg-main: #1f2625;
+  --bg-panel: #2a3231;
+  --border-soft: rgba(227, 227, 209, 0.08);
+  --text-main: #f5f5ec;
+  --text-soft: #d9d9c8;
+  --text-muted: #bfc4b6;
+
+  --danger-bg: #6f4d4d;
+  --danger-text: #f2d6d6;
+}
+
+.pageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── HERO ── */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 30px;
+  border-radius: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(88, 112, 109, 0.35),
+    rgba(75, 87, 87, 0.65)
+  );
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(227, 227, 209, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.heroEyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color5);
+  opacity: 0.85;
+}
+
+.heroTitle {
+  margin: 0 0 10px;
+  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--color5);
+}
+
+.heroDescription {
+  margin: 0;
+  max-width: 760px;
+  color: rgba(227, 227, 209, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+/* ── STATS ── */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.statCard {
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.statCardOne {
+  background: linear-gradient(180deg, rgba(88, 112, 109, 0.98), rgba(88, 112, 109, 0.82));
+}
+
+.statCardTwo {
+  background: linear-gradient(180deg, rgba(75, 87, 87, 0.98), rgba(75, 87, 87, 0.84));
+}
+
+.statCardThree {
+  background: linear-gradient(180deg, rgba(176, 176, 135, 0.98), rgba(176, 176, 135, 0.84));
+}
+
+.statCardThree .statLabel,
+.statCardThree .statValue {
+  color: #384141;
+}
+
+.statLabel {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 236, 0.82);
+}
+
+.statValue {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.04em;
+}
+
+/* ── PANELS ── */
+
+.panel {
+  padding: 0;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(42, 50, 49, 0.98), rgba(31, 38, 37, 0.98));
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid rgba(227, 227, 209, 0.06);
+}
+
+.panelEyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color4);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* ── FORM ── */
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px 24px 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 0.78rem;
+  color: var(--color4);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(227, 227, 209, 0.04);
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  color: var(--text-main);
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.field input::placeholder {
+  color: var(--text-muted);
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: rgba(176, 176, 135, 0.55);
+  box-shadow: 0 0 0 3px rgba(176, 176, 135, 0.12);
+  background: rgba(227, 227, 209, 0.06);
+}
+
+.createActions,
+.modalActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 0 24px 24px;
+}
+
+/* ── LIST ── */
+
+.list {
+  display: grid;
+  gap: 14px;
+  padding: 20px 24px 24px;
+}
+
+.card {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(227, 227, 209, 0.04);
+  border: 1px solid rgba(227, 227, 209, 0.06);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  background: rgba(227, 227, 209, 0.05);
+  border-color: rgba(227, 227, 209, 0.1);
+}
+
+.cardContent {
+  min-width: 0;
+}
+
+.cardTop {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.cardTop strong {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cardMeta {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* ── ACTIONS ── */
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.dangerButton:hover {
+  transform: translateY(-1px);
+}
+
+.primaryButton {
+  border: none;
+  color: #23302f;
+  background: linear-gradient(135deg, var(--color5), #f1f1e5);
+  box-shadow: 0 8px 24px rgba(227, 227, 209, 0.12);
+}
+
+.secondaryButton {
+  color: var(--text-main);
+  background: rgba(88, 112, 109, 0.28);
+  border: 1px solid rgba(227, 227, 209, 0.08);
+}
+
+.dangerButton {
+  color: var(--danger-text);
+  background: linear-gradient(135deg, var(--danger-bg), #7f5b5b);
+  border: 1px solid rgba(242, 214, 214, 0.12);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── FEEDBACK ── */
+
+.feedback {
+  margin: 0;
+  padding: 0 24px 20px;
+  color: var(--text-soft);
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+/* ── MODAL ── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 720px;
+  padding: 0;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(42, 50, 49, 0.99), rgba(31, 38, 37, 0.99));
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+}
+
+.modalHeader {
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid rgba(227, 227, 209, 0.06);
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* ── RESPONSIVE ── */
+
+@media (max-width: 980px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    border-radius: 20px;
+  }
+
+  .hero {
+    padding: 22px 18px;
+  }
+
+  .heroTitle {
+    font-size: 1.6rem;
+  }
+
+  .panelHeader,
+  .formGrid,
+  .list,
+  .createActions,
+  .modalActions,
+  .modalHeader {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .panelTitle {
+    font-size: 1rem;
+  }
+
+  .createActions,
+  .modalActions,
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .dangerButton {
+    width: 100%;
+  }
+}
