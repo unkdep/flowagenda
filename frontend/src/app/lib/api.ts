@@ -79,9 +79,17 @@ export async function apiFetch<T = unknown>(
   const method = (options.method || "GET").toUpperCase();
   const headers = new Headers(options.headers || {});
 
-  const normalizedPath = path.startsWith("/api/")
+  let normalizedPath = path.startsWith("/api/")
     ? path.replace("/api", "")
     : path;
+
+  if (!normalizedPath.startsWith("/")) {
+    normalizedPath = `/${normalizedPath}`;
+  }
+
+  if (!normalizedPath.endsWith("/")) {
+    normalizedPath += "/";
+  }
 
   const isJsonBody =
     options.body !== undefined &&
