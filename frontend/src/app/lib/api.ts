@@ -1,5 +1,4 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL = "";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -28,7 +27,10 @@ async function ensureCsrfCookie() {
   });
 }
 
-function extractMessage(data: any, fallback = "Ocorreu um erro ao processar sua solicitação.") {
+function extractMessage(
+  data: any,
+  fallback = "Ocorreu um erro ao processar sua solicitação."
+) {
   if (!data) return fallback;
 
   if (typeof data === "string" && data.trim()) {
