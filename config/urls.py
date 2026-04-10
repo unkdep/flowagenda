@@ -30,7 +30,6 @@ router.register(r"services", ServiceViewSet, basename="service")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
     path("api/", include(router.urls)),
 
     re_path(r"^api/availability/?$", availability_view),
