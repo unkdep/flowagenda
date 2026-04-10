@@ -96,7 +96,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# STATIC FILES (CORRIGIDO)
+# STATIC FILES
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -122,8 +122,11 @@ CSRF_TRUSTED_ORIGINS = [
     "https://flowagenda-six.vercel.app",
 ]
 
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
 
 
 # DRF
