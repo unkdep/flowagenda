@@ -1,4 +1,4 @@
-export const API_BASE_URL = "";
+export const API_BASE_URL = "/backend";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -21,7 +21,7 @@ function getCookie(name: string) {
 }
 
 async function ensureCsrfCookie() {
-  await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
+  await fetch(`${API_BASE_URL}/auth/csrf/`, {
     method: "GET",
     credentials: "include",
   });
@@ -79,6 +79,10 @@ export async function apiFetch<T = unknown>(
   const method = (options.method || "GET").toUpperCase();
   const headers = new Headers(options.headers || {});
 
+  const normalizedPath = path.startsWith("/api/")
+    ? path.replace("/api", "")
+    : path;
+
   const isJsonBody =
     options.body !== undefined &&
     options.body !== null &&
@@ -99,7 +103,7 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...options,
     method,
     credentials: "include",
