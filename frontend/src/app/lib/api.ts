@@ -21,7 +21,7 @@ function getCookie(name: string) {
 }
 
 async function ensureCsrfCookie() {
-  await fetch(`${API_BASE_URL}/auth/csrf/`, {
+  await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
     method: "GET",
     credentials: "include",
   });
@@ -33,41 +33,10 @@ function extractMessage(
 ) {
   if (!data) return fallback;
 
-  if (typeof data === "string" && data.trim()) {
-    return data;
-  }
-
-  if (typeof data?.error === "string" && data.error.trim()) {
-    return data.error;
-  }
-
-  if (typeof data?.detail === "string" && data.detail.trim()) {
-    return data.detail;
-  }
-
-  if (typeof data?.message === "string" && data.message.trim()) {
-    return data.message;
-  }
-
-  if (typeof data === "object") {
-    const entries = Object.entries(data)
-      .map(([key, value]) => {
-        if (Array.isArray(value)) {
-          return `${key}: ${value.join(", ")}`;
-        }
-
-        if (typeof value === "string") {
-          return `${key}: ${value}`;
-        }
-
-        return null;
-      })
-      .filter(Boolean);
-
-    if (entries.length > 0) {
-      return entries.join(" | ");
-    }
-  }
+  if (typeof data === "string" && data.trim()) return data;
+  if (typeof data?.error === "string") return data.error;
+  if (typeof data?.detail === "string") return data.detail;
+  if (typeof data?.message === "string") return data.message;
 
   return fallback;
 }
@@ -79,9 +48,7 @@ export async function apiFetch<T = unknown>(
   const method = (options.method || "GET").toUpperCase();
   const headers = new Headers(options.headers || {});
 
-  let normalizedPath = path.startsWith("/api/")
-    ? path.replace("/api", "")
-    : path;
+  let normalizedPath = path;
 
   if (!normalizedPath.startsWith("/")) {
     normalizedPath = `/${normalizedPath}`;
@@ -121,16 +88,10 @@ export async function apiFetch<T = unknown>(
       : (options.body as BodyInit | null | undefined),
   });
 
-  const contentType = response.headers.get("content-type") || "";
   let data: any = null;
 
   try {
-    if (contentType.includes("application/json")) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      data = text || null;
-    }
+    data = await response.json();
   } catch {
     data = null;
   }
