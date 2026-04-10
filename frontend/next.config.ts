@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/backend/:path*",
-        destination: "https://flowagenda.onrender.com/api/:path*",
+        destination: "https://flowagenda.onrender.com/:path*",
       },
     ];
   },
