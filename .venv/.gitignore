@@ -1,0 +1,45 @@
+# ===== Python / Django =====
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+*.sqlite3
+
+# ===== Environment files =====
+.env
+.env.*
+!.env.example
+
+# ===== Django / Python misc =====
+*.log
+staticfiles/
+media/
+
+# ===== Node / Next =====
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+
+# ===== Frontend env =====
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# ===== IDE / OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===== Vercel =====
+frontend/.vercel/
+
+# ===== TypeScript =====
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
