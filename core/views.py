@@ -121,6 +121,30 @@ def get_update_event_name(old_status, new_status):
     return "appointment.updated"
 
 
+def parse_request_date(date_str):
+    """
+    Aceita formatos como:
+    - 2026-04-10
+    - 2026-04-10T00:00:00
+    - 2026-04-10T00:00:00Z
+    - 2026-04-10T00:00:00.000Z
+    """
+    if not date_str:
+        raise ValueError("Data vazia.")
+
+    raw = str(date_str).strip()
+
+    # Caso venha datetime ISO, pega apenas a parte da data
+    if "T" in raw:
+        raw = raw.split("T", 1)[0]
+
+    # Caso venha algo como 2026-04-10 00:00:00
+    if " " in raw:
+        raw = raw.split(" ", 1)[0]
+
+    return datetime.strptime(raw, "%Y-%m-%d").date()
+
+
 @ensure_csrf_cookie
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -279,12 +303,12 @@ def availability_view(request):
     if not clinic:
         return Response({"error": "Clínica não encontrada."}, status=400)
 
-    professional_id = request.GET.get("professional_id")
-    date_str = request.GET.get("date")
+    professional_id = request.GET.get("professional_id") or request.GET.get("professional")
+    date_str = request.GET.get("date") or request.GET.get("day")
 
     if not professional_id or not date_str:
         return Response(
-            {"error": "professional_id e date são obrigatórios."},
+            {"error": "professional_id/professional e date/day são obrigatórios."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -295,9 +319,14 @@ def availability_view(request):
     )
 
     try:
-        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        target_date = parse_request_date(date_str)
     except ValueError:
-        return Response({"error": "Data inválida."}, status=400)
+        return Response(
+            {
+                "error": "Data inválida. Use o formato YYYY-MM-DD."
+            },
+            status=400,
+        )
 
     start_hour = 8
     end_hour = 18
@@ -310,7 +339,7 @@ def availability_view(request):
         status__in=["scheduled", "confirmed", "pending"],
     ).values_list("start_time", flat=True)
 
-    taken_times = {dt.strftime("%H:%M") for dt in taken}
+    taken_times = {timezone.localtime(dt).strftime("%H:%M") for dt in taken}
 
     slots = []
     current = datetime.combine(target_date, datetime.min.time()).replace(
@@ -329,7 +358,7 @@ def availability_view(request):
         {
             "professional_id": professional.id,
             "professional_name": professional.name,
-            "date": date_str,
+            "date": target_date.isoformat(),
             "available": slots,
         }
     )
@@ -360,7 +389,11 @@ def book_appointment(request):
         client = Client.objects.get(id=client_id, clinic=clinic)
         service = Service.objects.get(id=service_id, clinic=clinic)
 
-        naive_start = datetime.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
+        parsed_date = parse_request_date(date)
+        naive_start = datetime.strptime(
+            f"{parsed_date.isoformat()} {time_str}",
+            "%Y-%m-%d %H:%M",
+        )
         start_dt = timezone.make_aware(
             naive_start,
             timezone.get_current_timezone(),

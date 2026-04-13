@@ -223,14 +223,15 @@ export function LayoutShell({
       background: #1a2420;
       color: #e3e3d1;
       font-family: system-ui, -apple-system, sans-serif;
+      align-items: stretch;
     }
 
     .sb {
       width: ${sidebarWidth};
       min-width: ${sidebarWidth};
-      height: 100vh;
-      position: sticky;
-      top: 0;
+      min-height: 100vh;
+      height: auto;
+      position: relative;
       background: #141e1a;
       border-right: 1px solid rgba(176,176,135,0.1);
       display: flex;
@@ -239,6 +240,7 @@ export function LayoutShell({
       transition: width .22s cubic-bezier(.4,0,.2,1), min-width .22s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.4,0,.2,1);
       overflow: hidden;
       z-index: 60;
+      align-self: stretch;
     }
 
     .sb-brand {
@@ -643,6 +645,7 @@ export function LayoutShell({
         width: 272px !important;
         min-width: 272px !important;
         height: 100vh;
+        min-height: 100vh;
         transform: translateX(-100%);
         box-shadow: 8px 0 40px rgba(0,0,0,0.4);
       }

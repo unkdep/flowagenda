@@ -103,7 +103,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 72px;
+  min-width: 52px;
 }
 
 .heroStatItem strong {
@@ -290,6 +290,7 @@
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
 }
 
 .field input::placeholder {
@@ -380,6 +381,7 @@
   align-items: center;
   gap: 14px;
   min-width: 0;
+  flex: 1;
 }
 
 .cardAvatar {
@@ -398,6 +400,7 @@
 
 .cardContent {
   min-width: 0;
+  flex: 1;
 }
 
 .cardTop {
@@ -417,6 +420,10 @@
 .cardMeta {
   font-size: 0.8rem;
   color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── ACTIONS ── */
@@ -487,6 +494,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badgeActive {
@@ -497,6 +505,76 @@
 .badgeInactive {
   background: rgba(111, 77, 77, 0.3);
   color: #f0d7d7;
+}
+
+/* ── PAGINATION ── */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(227, 227, 209, 0.06);
+  flex-wrap: wrap;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageBtn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(227, 227, 209, 0.04);
+  border: 1px solid rgba(227, 227, 209, 0.08);
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: rgba(227, 227, 209, 0.09);
+  border-color: rgba(227, 227, 209, 0.16);
+  transform: translateY(-1px);
+}
+
+.pageBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pageBtnActive {
+  background: rgba(176, 176, 135, 0.22);
+  border-color: rgba(176, 176, 135, 0.4);
+  color: var(--color5);
+}
+
+.pageDots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 36px;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.pageInfo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 6px;
+  white-space: nowrap;
 }
 
 /* ── SKELETON ── */
@@ -611,6 +689,7 @@
   background: rgba(227, 227, 209, 0.04);
   color: var(--text-soft);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .modalBody {
@@ -657,13 +736,62 @@
     min-width: unset;
   }
 
+  /* Cards de stat ocultos no mobile */
+  .statsGrid {
+    display: none;
+  }
+
   .card {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* Garante que cardLeft e badge ficam corretos no mobile */
+  .cardLeft {
+    width: 100%;
+  }
+
+  .cardTop {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
   }
 
   .actions {
     width: 100%;
+  }
+
+  .heroTitle {
+    font-size: 1.35rem;
+  }
+
+  .heroDescription {
+    font-size: 0.88rem;
+  }
+
+  .heroStats {
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .heroStatItem strong {
+    font-size: 1.4rem;
+  }
+
+  .pagination {
+    gap: 4px;
+    padding: 14px 16px;
+  }
+
+  .pageInfo {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+    margin-top: 4px;
   }
 }
 
@@ -678,5 +806,9 @@
   .secondaryButton,
   .dangerButton {
     width: 100%;
+  }
+
+  .hero {
+    padding: 20px;
   }
 }

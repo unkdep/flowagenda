@@ -56,10 +56,15 @@ const monthNames = [
   "Dezembro",
 ];
 
+function normalizeDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 function formatDateToISO(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const normalized = normalizeDate(date);
+  const year = normalized.getFullYear();
+  const month = `${normalized.getMonth() + 1}`.padStart(2, "0");
+  const day = `${normalized.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -93,7 +98,7 @@ function getDisplayName(item: ProfessionalItem) {
 }
 
 export default function CalendarPage() {
-  const today = new Date();
+  const today = useMemo(() => normalizeDate(new Date()), []);
 
   const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
   const [professionals, setProfessionals] = useState<ProfessionalItem[]>([]);
@@ -168,14 +173,18 @@ export default function CalendarPage() {
     }
 
     fetchInitialData();
-  }, []);
+  }, [today]);
 
-  const selectedDateISO = formatDateToISO(selectedDate);
+  const selectedDateISO = useMemo(
+    () => formatDateToISO(selectedDate),
+    [selectedDate]
+  );
 
   useEffect(() => {
     async function fetchAvailability() {
       if (!selectedProfessionalId) {
         setAvailableSlots([]);
+        setAvailabilityFeedback("");
         return;
       }
 
@@ -183,8 +192,13 @@ export default function CalendarPage() {
         setAvailabilityLoading(true);
         setAvailabilityFeedback("");
 
+        const params = new URLSearchParams({
+          professional_id: selectedProfessionalId,
+          date: selectedDateISO,
+        });
+
         const data = await apiFetch<AvailabilityResponse>(
-          `/api/availability/?professional_id=${selectedProfessionalId}&date=${selectedDateISO}`
+          `/api/availability/?${params.toString()}`
         );
 
         setAvailableSlots(Array.isArray(data.available) ? data.available : []);
@@ -218,7 +232,7 @@ export default function CalendarPage() {
     return Array.from({ length: 42 }, (_, index) => {
       const date = new Date(firstGridDate);
       date.setDate(firstGridDate.getDate() + index);
-      return date;
+      return normalizeDate(date);
     });
   }, [currentMonth]);
 
@@ -240,11 +254,12 @@ export default function CalendarPage() {
   }, [appointments, selectedDateISO]);
 
   const stats = useMemo(() => {
+    const todayISO = formatDateToISO(today);
+
     return {
       total: appointments.length,
-      today: appointments.filter(
-        (appointment) => appointment.date === formatDateToISO(today)
-      ).length,
+      today: appointments.filter((appointment) => appointment.date === todayISO)
+        .length,
       confirmed: appointments.filter(
         (appointment) => appointment.status === "confirmed"
       ).length,
@@ -267,7 +282,7 @@ export default function CalendarPage() {
   }
 
   function handleToday() {
-    const now = new Date();
+    const now = normalizeDate(new Date());
     setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     setSelectedDate(now);
   }
@@ -369,7 +384,7 @@ export default function CalendarPage() {
                   <button
                     key={iso}
                     type="button"
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => setSelectedDate(normalizeDate(date))}
                     className={[
                       styles.dayCell,
                       !isCurrentMonth ? styles.dayCellMuted : "",

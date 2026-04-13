@@ -23,11 +23,14 @@ const emptyForm: FormData = {
   duration: "",
 };
 
+const PAGE_SIZE = 6;
+
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [form, setForm] = useState<FormData>(emptyForm);
 
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +54,6 @@ export default function ServicesPage() {
       setErrorMessage("");
       await fetchServices();
     } catch (error) {
-      console.error(error);
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -68,11 +70,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     if (!successMessage) return;
-
-    const timer = setTimeout(() => {
-      setSuccessMessage("");
-    }, 3000);
-
+    const timer = setTimeout(() => setSuccessMessage(""), 3000);
     return () => clearTimeout(timer);
   }, [successMessage]);
 
@@ -82,25 +80,16 @@ export default function ServicesPage() {
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   function handleEditChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
-
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setEditForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setErrorMessage("");
     setSuccessMessage("");
 
@@ -119,24 +108,13 @@ export default function ServicesPage() {
 
     try {
       setSaving(true);
-
-      await apiFetch("/api/services/", {
-        method: "POST",
-        body: {
-          name,
-          duration,
-        },
-      });
-
+      await apiFetch("/api/services/", { method: "POST", body: { name, duration } });
       await fetchServices();
       resetForm();
       setSuccessMessage("Serviço criado com sucesso.");
     } catch (error) {
-      console.error(error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro inesperado ao salvar o serviço."
+        error instanceof Error ? error.message : "Erro inesperado ao salvar o serviço."
       );
     } finally {
       setSaving(false);
@@ -181,21 +159,15 @@ export default function ServicesPage() {
 
       await apiFetch(`/api/services/${selected.id}/`, {
         method: "PUT",
-        body: {
-          name,
-          duration,
-        },
+        body: { name, duration },
       });
 
       await fetchServices();
       closeEditModal();
       setSuccessMessage("Serviço atualizado com sucesso.");
     } catch (error) {
-      console.error(error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro inesperado ao atualizar o serviço."
+        error instanceof Error ? error.message : "Erro inesperado ao atualizar o serviço."
       );
     } finally {
       setUpdating(false);
@@ -203,33 +175,22 @@ export default function ServicesPage() {
   }
 
   async function handleDelete(serviceId: number) {
-    const confirmed = window.confirm(
-      "Tem certeza que deseja excluir este serviço?"
-    );
-
-    if (!confirmed) return;
+    if (!window.confirm("Tem certeza que deseja excluir este serviço?")) return;
 
     try {
       setDeletingId(serviceId);
       setErrorMessage("");
       setSuccessMessage("");
 
-      await apiFetch(`/api/services/${serviceId}/`, {
-        method: "DELETE",
-      });
+      await apiFetch(`/api/services/${serviceId}/`, { method: "DELETE" });
 
-      if (selected?.id === serviceId) {
-        closeEditModal();
-      }
+      if (selected?.id === serviceId) closeEditModal();
 
       await fetchServices();
       setSuccessMessage("Serviço excluído com sucesso.");
     } catch (error) {
-      console.error(error);
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro inesperado ao excluir o serviço."
+        error instanceof Error ? error.message : "Erro inesperado ao excluir o serviço."
       );
     } finally {
       setDeletingId(null);
@@ -237,10 +198,10 @@ export default function ServicesPage() {
   }
 
   const filteredServices = useMemo(() => {
+    const term = search.toLowerCase();
+    setPage(1);
     return services.filter((service) => {
       const clinicName = (service.clinic_name || "").toLowerCase();
-      const term = search.toLowerCase();
-
       return (
         service.name.toLowerCase().includes(term) ||
         String(service.duration).includes(search) ||
@@ -249,41 +210,31 @@ export default function ServicesPage() {
     });
   }, [services, search]);
 
+  const totalPages = Math.ceil(filteredServices.length / PAGE_SIZE);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredServices.slice(start, start + PAGE_SIZE);
+  }, [filteredServices, page]);
+
   const metrics = useMemo(() => {
     const total = services.length;
-
     const averageDuration =
       total > 0
-        ? Math.round(
-            services.reduce(
-              (acc, item) => acc + Number(item.duration || 0),
-              0
-            ) / total
-          )
+        ? Math.round(services.reduce((acc, item) => acc + Number(item.duration || 0), 0) / total)
         : 0;
-
     const longestDuration =
-      total > 0
-        ? Math.max(...services.map((item) => Number(item.duration || 0)))
-        : 0;
+      total > 0 ? Math.max(...services.map((item) => Number(item.duration || 0))) : 0;
+    const clinicsCount = new Set(services.map((item) => item.clinic_name || item.clinic)).size;
 
-    const clinicsCount = new Set(
-      services.map((item) => item.clinic_name || item.clinic)
-    ).size;
-
-    return {
-      total,
-      averageDuration,
-      longestDuration,
-      clinicsCount,
-    };
+    return { total, averageDuration, longestDuration, clinicsCount };
   }, [services]);
 
   return (
     <LayoutShell eyebrow="Cadastros" title="Serviços">
       <section className={styles.page}>
         <div className={styles.hero}>
-          <div>
+          <div className={styles.heroContent}>
             <p className={styles.eyebrow}>Catálogo da clínica</p>
             <h2 className={styles.title}>Gerencie os serviços oferecidos</h2>
             <p className={styles.subtitle}>
@@ -291,8 +242,26 @@ export default function ServicesPage() {
               minutos para alimentar a agenda e os agendamentos automáticos.
             </p>
           </div>
+
+          <div className={styles.heroStats}>
+            <div className={styles.heroStatItem}>
+              <strong>{metrics.total}</strong>
+              <span>Total</span>
+            </div>
+            <div className={styles.heroStatDivider} />
+            <div className={styles.heroStatItem}>
+              <strong>{metrics.averageDuration}m</strong>
+              <span>Média</span>
+            </div>
+            <div className={styles.heroStatDivider} />
+            <div className={styles.heroStatItem}>
+              <strong>{metrics.clinicsCount}</strong>
+              <span>Clínicas</span>
+            </div>
+          </div>
         </div>
 
+        {/* Metric cards — hidden on mobile */}
         <section className={styles.metricsGrid}>
           <article className={styles.metricCard}>
             <span className={styles.metricLabel}>Total de serviços</span>
@@ -301,16 +270,12 @@ export default function ServicesPage() {
 
           <article className={styles.metricCard}>
             <span className={styles.metricLabel}>Duração média</span>
-            <strong className={styles.metricValue}>
-              {metrics.averageDuration} min
-            </strong>
+            <strong className={styles.metricValue}>{metrics.averageDuration} min</strong>
           </article>
 
           <article className={styles.metricCard}>
             <span className={styles.metricLabel}>Maior duração</span>
-            <strong className={styles.metricValue}>
-              {metrics.longestDuration} min
-            </strong>
+            <strong className={styles.metricValue}>{metrics.longestDuration} min</strong>
           </article>
 
           <article className={styles.metricCard}>
@@ -355,22 +320,13 @@ export default function ServicesPage() {
               </div>
 
               <div className={styles.formActions}>
-                <button
-                  type="submit"
-                  className={styles.primaryButton}
-                  disabled={saving}
-                >
+                <button type="submit" className={styles.primaryButton} disabled={saving}>
                   {saving ? "Salvando..." : "Criar serviço"}
                 </button>
               </div>
 
-              {successMessage && (
-                <p className={styles.successMessage}>{successMessage}</p>
-              )}
-
-              {errorMessage && (
-                <p className={styles.errorMessage}>{errorMessage}</p>
-              )}
+              {successMessage && <p className={styles.successMessage}>{successMessage}</p>}
+              {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
             </form>
           </article>
 
@@ -380,167 +336,147 @@ export default function ServicesPage() {
                 <p className={styles.cardEyebrow}>Listagem</p>
                 <h3 className={styles.cardTitle}>Serviços cadastrados</h3>
               </div>
-            </div>
 
-            <div className={styles.filters}>
-              <label className={styles.searchField}>
-                <input
-                  type="text"
-                  placeholder="Buscar por nome, duração ou clínica"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </label>
+              <input
+                className={styles.searchInput}
+                type="text"
+                placeholder="Buscar por nome, duração ou clínica"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
 
             {loading ? (
-              <div className={styles.emptyState}>
-                <strong>Carregando serviços...</strong>
-                <p>Aguarde enquanto buscamos os dados da API.</p>
+              <div className={styles.skeletonList}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={styles.skeletonRow}>
+                    <div className={styles.skeletonLines}>
+                      <div className={styles.skeletonLine} style={{ width: "45%" }} />
+                      <div className={styles.skeletonLine} style={{ width: "28%", height: 10 }} />
+                    </div>
+                    <div className={styles.skeletonLine} style={{ width: 60 }} />
+                  </div>
+                ))}
               </div>
             ) : filteredServices.length === 0 ? (
               <div className={styles.emptyState}>
-                <strong>Nenhum serviço encontrado</strong>
+                <strong>{search ? "Nenhum resultado encontrado" : "Nenhum serviço encontrado"}</strong>
                 <p>
-                  Cadastre um novo serviço ou ajuste a busca para visualizar
-                  resultados.
+                  {search
+                    ? "Ajuste a busca para visualizar resultados."
+                    : "Cadastre um novo serviço para começar."}
                 </p>
               </div>
             ) : (
-              <div className={styles.serviceList}>
-                {filteredServices.map((service) => (
-                  <article key={service.id} className={styles.serviceCard}>
-                    <div className={styles.serviceMain}>
-                      <div>
-                        <h4>{service.name}</h4>
-                        <p>
-                          Clínica: {service.clinic_name || `ID ${service.clinic}`}
-                        </p>
+              <>
+                <div className={styles.serviceList}>
+                  {paginated.map((service) => (
+                    <article key={service.id} className={styles.serviceCard}>
+                      <div className={styles.serviceMain}>
+                        <div className={styles.serviceInfo}>
+                          <h4>{service.name}</h4>
+                          <p>Clínica: {service.clinic_name || `ID ${service.clinic}`}</p>
+                        </div>
+
+                        <div className={styles.badges}>
+                          <span className={styles.durationBadge}>{service.duration} min</span>
+                        </div>
                       </div>
 
-                      <div className={styles.badges}>
-                        <span className={styles.durationBadge}>
-                          {service.duration} min
-                        </span>
+                      <div className={styles.serviceActions}>
+                        <button
+                          type="button"
+                          className={styles.editButton}
+                          onClick={() => openEditModal(service)}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.deleteButton}
+                          onClick={() => handleDelete(service.id)}
+                          disabled={deletingId === service.id}
+                        >
+                          {deletingId === service.id ? "Excluindo..." : "Excluir"}
+                        </button>
                       </div>
+                    </article>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      aria-label="Página anterior"
+                    >
+                      ←
+                    </button>
+
+                    <div className={styles.pageNumbers}>
+                      {Array.from({ length: totalPages }).map((_, i) => {
+                        const n = i + 1;
+                        const isNear = Math.abs(n - page) <= 1 || n === 1 || n === totalPages;
+                        if (!isNear) {
+                          if (n === page - 2 || n === page + 2) {
+                            return <span key={n} className={styles.pageDots}>…</span>;
+                          }
+                          return null;
+                        }
+                        return (
+                          <button
+                            key={n}
+                            className={`${styles.pageBtn} ${n === page ? styles.pageBtnActive : ""}`}
+                            onClick={() => setPage(n)}
+                          >
+                            {n}
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    <div className={styles.serviceActions}>
-                      <button
-                        type="button"
-                        className={styles.editButton}
-                        onClick={() => openEditModal(service)}
-                      >
-                        Editar
-                      </button>
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      aria-label="Próxima página"
+                    >
+                      →
+                    </button>
 
-                      <button
-                        type="button"
-                        className={styles.deleteButton}
-                        onClick={() => handleDelete(service.id)}
-                        disabled={deletingId === service.id}
-                      >
-                        {deletingId === service.id ? "Excluindo..." : "Excluir"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                    <span className={styles.pageInfo}>
+                      {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredServices.length)} de {filteredServices.length}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </article>
         </section>
 
         {selected && (
           <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 18, 18, 0.72)",
-              backdropFilter: "blur(4px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "20px",
-              zIndex: 999,
-            }}
+            className={styles.modalOverlay}
             onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                closeEditModal();
-              }
+              if (e.target === e.currentTarget) closeEditModal();
             }}
           >
-            <div
-              style={{
-                width: "100%",
-                maxWidth: "520px",
-                background:
-                  "linear-gradient(180deg, rgba(42, 50, 49, 0.99), rgba(31, 38, 37, 0.99))",
-                border: "1px solid rgba(227, 227, 209, 0.08)",
-                borderRadius: "24px",
-                overflow: "hidden",
-                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.34)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                  padding: "22px 24px 18px",
-                  borderBottom: "1px solid rgba(227, 227, 209, 0.06)",
-                }}
-              >
+            <div className={styles.modal}>
+              <div className={styles.modalHeader}>
                 <div>
-                  <p
-                    style={{
-                      margin: "0 0 6px",
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: "#b0b087",
-                    }}
-                  >
-                    Editar serviço
-                  </p>
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: "1.1rem",
-                      fontWeight: 600,
-                      color: "#f5f5ec",
-                    }}
-                  >
-                    {selected.name}
-                  </h3>
+                  <p className={styles.modalEyebrow}>Editar serviço</p>
+                  <h3>{selected.name}</h3>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 9,
-                    border: "1px solid rgba(227, 227, 209, 0.08)",
-                    background: "rgba(227, 227, 209, 0.04)",
-                    color: "#d9d9c8",
-                    cursor: "pointer",
-                  }}
-                >
+                <button type="button" className={styles.modalClose} onClick={closeEditModal}>
                   ✕
                 </button>
               </div>
 
-              <div
-                style={{
-                  padding: "20px 24px 24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
+              <div className={styles.modalBody}>
                 <label className={`${styles.field} ${styles.fieldFull}`}>
                   <span>Nome</span>
                   <input
@@ -562,13 +498,7 @@ export default function ServicesPage() {
                   />
                 </label>
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className={styles.modalActions}>
                   <button
                     type="button"
                     className={styles.primaryButton}

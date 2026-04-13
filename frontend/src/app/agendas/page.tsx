@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LayoutShell } from "../components/layout-shell";
 import { apiFetch } from "@/app/lib/api";
 import styles from "./agendas.module.css";
@@ -57,6 +57,8 @@ type CreateFormState = {
   start_time: string;
 };
 
+const HISTORY_PAGE_SIZE = 6;
+
 function getTodayDate() {
   const now = new Date();
   const year = now.getFullYear();
@@ -76,49 +78,36 @@ function getDisplayName(
 
 function initials(name: string) {
   if (!name) return "?";
-
   const parts = name.trim().split(" ").filter(Boolean);
-
   if (parts.length >= 2) {
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
-
   return name.slice(0, 2).toUpperCase();
 }
 
 function formatDate(value?: string) {
   if (!value) return "--/--/----";
-
   const parsed = new Date(value);
-
   if (!Number.isNaN(parsed.getTime())) {
     return parsed.toLocaleDateString("pt-BR");
   }
-
   if (value.includes("T")) {
     return value.split("T")[0];
   }
-
   return value;
 }
 
 function formatTime(value?: string) {
   if (!value) return "--:--";
-
   const parsed = new Date(value);
-
   if (!Number.isNaN(parsed.getTime())) {
     return parsed.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     });
   }
-
   const match = value.match(/(\d{2}):(\d{2})/);
-  if (match) {
-    return `${match[1]}:${match[2]}`;
-  }
-
+  if (match) return `${match[1]}:${match[2]}`;
   return "--:--";
 }
 
@@ -161,6 +150,11 @@ export default function AgendasPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // History pagination
+  const [historyVisible, setHistoryVisible] = useState(HISTORY_PAGE_SIZE);
+  const [historyAtBottom, setHistoryAtBottom] = useState(false);
+  const historyListRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<CreateFormState>({
     professional_id: "",
@@ -220,7 +214,6 @@ export default function AgendasPage() {
         error instanceof Error
           ? error.message
           : "Erro ao carregar os dados da agenda.";
-
       setFeedback(message);
     } finally {
       setLoading(false);
@@ -243,32 +236,33 @@ export default function AgendasPage() {
     [data]
   );
 
-  const visibleAppointments = useMemo(() => {
-    return data.filter((item) =>
-      ["scheduled", "confirmed", "pending"].includes(item.status)
-    );
-  }, [data]);
+  const visibleAppointments = useMemo(
+    () =>
+      data.filter((item) =>
+        ["scheduled", "confirmed", "pending"].includes(item.status)
+      ),
+    [data]
+  );
 
-  const historyAppointments = useMemo(() => {
-    return data.filter((item) =>
-      ["completed", "cancelled"].includes(item.status)
-    );
-  }, [data]);
+  const historyAppointments = useMemo(
+    () =>
+      data.filter((item) =>
+        ["completed", "cancelled"].includes(item.status)
+      ),
+    [data]
+  );
 
   const filteredVisible = useMemo(
     () =>
       visibleAppointments.filter((item) => {
         const term = search.toLowerCase().trim();
-
         const matchSearch =
           item.client.toLowerCase().includes(term) ||
           item.professional.toLowerCase().includes(term) ||
           item.service.toLowerCase().includes(term) ||
           item.date.toLowerCase().includes(term);
-
         const matchStatus =
           statusFilter === "all" || item.status === statusFilter;
-
         return matchSearch && matchStatus;
       }),
     [visibleAppointments, search, statusFilter]
@@ -278,21 +272,41 @@ export default function AgendasPage() {
     () =>
       historyAppointments.filter((item) => {
         const term = search.toLowerCase().trim();
-
-        const matchSearch =
+        return (
           item.client.toLowerCase().includes(term) ||
           item.professional.toLowerCase().includes(term) ||
           item.service.toLowerCase().includes(term) ||
-          item.date.toLowerCase().includes(term);
-
-        return matchSearch;
+          item.date.toLowerCase().includes(term)
+        );
       }),
     [historyAppointments, search]
   );
 
-  const selectedService = useMemo(() => {
-    return services.find((service) => String(service.id) === form.service_id);
-  }, [services, form.service_id]);
+  const visibleHistory = useMemo(
+    () => filteredHistory.slice(0, historyVisible),
+    [filteredHistory, historyVisible]
+  );
+
+  const historyRemaining = filteredHistory.length - historyVisible;
+  const hasMoreHistory = historyRemaining > 0;
+
+  function handleLoadMoreHistory() {
+    setHistoryVisible((prev) => prev + HISTORY_PAGE_SIZE);
+    setTimeout(() => {
+      historyListRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 50);
+  }
+
+  function handleHistoryScroll() {
+    if (!historyListRef.current) return;
+    const { scrollHeight, scrollTop, clientHeight } = historyListRef.current;
+    setHistoryAtBottom(scrollHeight - scrollTop - clientHeight < 10);
+  }
+
+  const selectedService = useMemo(
+    () => services.find((s) => String(s.id) === form.service_id),
+    [services, form.service_id]
+  );
 
   function getStatusLabel(status: string) {
     const map: Record<string, string> = {
@@ -302,7 +316,6 @@ export default function AgendasPage() {
       completed: "Concluído",
       cancelled: "Cancelado",
     };
-
     return map[status] ?? status;
   }
 
@@ -314,7 +327,6 @@ export default function AgendasPage() {
       completed: styles.statusCompleted,
       cancelled: styles.statusCancelled,
     };
-
     return `${styles.statusBadge} ${map[status] ?? styles.statusScheduled}`;
   }
 
@@ -322,14 +334,8 @@ export default function AgendasPage() {
     field: K,
     value: CreateFormState[K]
   ) {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    if (createFeedback) {
-      setCreateFeedback("");
-    }
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (createFeedback) setCreateFeedback("");
   }
 
   function resetCreateForm() {
@@ -345,43 +351,33 @@ export default function AgendasPage() {
 
   function getMissingFields(currentForm: CreateFormState) {
     const missing: string[] = [];
-
     if (!currentForm.professional_id) missing.push("profissional");
     if (!currentForm.client_id) missing.push("cliente");
     if (!currentForm.service_id) missing.push("serviço");
     if (!currentForm.date) missing.push("data");
     if (!currentForm.start_time) missing.push("horário de início");
-
     return missing;
   }
 
   async function handleCreateAppointment() {
     if (creatingAppointment) return;
-
     const missingFields = getMissingFields(form);
-
     if (missingFields.length > 0) {
-      setCreateFeedback(
-        `Preencha os campos obrigatórios: ${missingFields.join(", ")}.`
-      );
+      setCreateFeedback(`Preencha os campos obrigatórios: ${missingFields.join(", ")}.`);
       return;
     }
-
     if (!isValidDateString(form.date)) {
       setCreateFeedback("A data está em formato inválido.");
       return;
     }
-
     if (!isValidTimeString(form.start_time)) {
       setCreateFeedback("O horário de início está em formato inválido.");
       return;
     }
-
     try {
       setCreatingAppointment(true);
       setCreateFeedback("");
       setFeedback("");
-
       await apiFetch("/api/book-appointment/", {
         method: "POST",
         body: {
@@ -392,7 +388,6 @@ export default function AgendasPage() {
           time: form.start_time,
         },
       });
-
       resetCreateForm();
       setShowCreateForm(false);
       setFeedback("Agendamento criado com sucesso.");
@@ -402,7 +397,6 @@ export default function AgendasPage() {
         error instanceof Error
           ? error.message
           : "Não foi possível criar o agendamento.";
-
       setCreateFeedback(message);
     } finally {
       setCreatingAppointment(false);
@@ -411,18 +405,13 @@ export default function AgendasPage() {
 
   async function handleUpdateStatus() {
     if (!selected) return;
-
     try {
       setSavingStatus(true);
       setFeedback("");
-
       await apiFetch(`/api/appointments/${selected.id}/`, {
         method: "PATCH",
-        body: {
-          status: selected.status,
-        },
+        body: { status: selected.status },
       });
-
       setSelected(null);
       setEditMode(false);
       setFeedback("Status atualizado com sucesso.");
@@ -432,7 +421,6 @@ export default function AgendasPage() {
         error instanceof Error
           ? error.message
           : "Erro ao atualizar o status do agendamento.";
-
       setFeedback(message);
     } finally {
       setSavingStatus(false);
@@ -442,30 +430,19 @@ export default function AgendasPage() {
   async function handleQuickCancel(id: number) {
     const confirmed = window.confirm("Cancelar este agendamento?");
     if (!confirmed) return;
-
     try {
       setQuickCancellingId(id);
       setFeedback("");
-
       await apiFetch(`/api/appointments/${id}/`, {
         method: "PATCH",
-        body: {
-          status: "cancelled",
-        },
+        body: { status: "cancelled" },
       });
-
-      if (selected?.id === id) {
-        setSelected({ ...selected, status: "cancelled" });
-      }
-
+      if (selected?.id === id) setSelected({ ...selected, status: "cancelled" });
       setFeedback("Agendamento cancelado com sucesso.");
       await fetchData();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Erro ao cancelar o agendamento.";
-
+        error instanceof Error ? error.message : "Erro ao cancelar o agendamento.";
       setFeedback(message);
     } finally {
       setQuickCancellingId(null);
@@ -475,30 +452,19 @@ export default function AgendasPage() {
   async function handleQuickComplete(id: number) {
     const confirmed = window.confirm("Marcar este agendamento como concluído?");
     if (!confirmed) return;
-
     try {
       setQuickCompletingId(id);
       setFeedback("");
-
       await apiFetch(`/api/appointments/${id}/`, {
         method: "PATCH",
-        body: {
-          status: "completed",
-        },
+        body: { status: "completed" },
       });
-
-      if (selected?.id === id) {
-        setSelected({ ...selected, status: "completed" });
-      }
-
+      if (selected?.id === id) setSelected({ ...selected, status: "completed" });
       setFeedback("Agendamento concluído com sucesso.");
       await fetchData();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Erro ao concluir o agendamento.";
-
+        error instanceof Error ? error.message : "Erro ao concluir o agendamento.";
       setFeedback(message);
     } finally {
       setQuickCompletingId(null);
@@ -507,28 +473,20 @@ export default function AgendasPage() {
 
   async function handleModalCancel() {
     if (!selected) return;
-
     try {
       setSavingStatus(true);
       setFeedback("");
-
       await apiFetch(`/api/appointments/${selected.id}/`, {
         method: "PATCH",
-        body: {
-          status: "cancelled",
-        },
+        body: { status: "cancelled" },
       });
-
       setSelected(null);
       setEditMode(false);
       setFeedback("Agendamento cancelado com sucesso.");
       await fetchData();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Erro ao cancelar o agendamento.";
-
+        error instanceof Error ? error.message : "Erro ao cancelar o agendamento.";
       setFeedback(message);
     } finally {
       setSavingStatus(false);
@@ -537,28 +495,20 @@ export default function AgendasPage() {
 
   async function handleModalComplete() {
     if (!selected) return;
-
     try {
       setSavingStatus(true);
       setFeedback("");
-
       await apiFetch(`/api/appointments/${selected.id}/`, {
         method: "PATCH",
-        body: {
-          status: "completed",
-        },
+        body: { status: "completed" },
       });
-
       setSelected(null);
       setEditMode(false);
       setFeedback("Agendamento concluído com sucesso.");
       await fetchData();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Erro ao concluir o agendamento.";
-
+        error instanceof Error ? error.message : "Erro ao concluir o agendamento.";
       setFeedback(message);
     } finally {
       setSavingStatus(false);
@@ -568,21 +518,21 @@ export default function AgendasPage() {
   return (
     <LayoutShell eyebrow="Operação" title="Agendamentos">
       <section className={styles.pageSection}>
+
+        {/* ── HERO ── */}
         <div className={styles.hero}>
           <div className={styles.heroGlow} />
-
           <div className={styles.heroContent}>
             <span className={styles.heroEyebrow}>Gestão da agenda</span>
-            <h2 className={styles.heroTitle}>
-              Controle completo dos atendimentos
-            </h2>
+            <h2 className={styles.heroTitle}>Controle completo dos atendimentos</h2>
             <p className={styles.heroDescription}>
               Gerencie os agendamentos da clínica, filtre por status e crie
               novos atendimentos sem sair desta página.
             </p>
           </div>
 
-          <div className={styles.heroActions}>
+          {/* Desktop-only action button inside hero */}
+          <div className={`${styles.heroActions} ${styles.heroActionsDesktop}`}>
             <button
               type="button"
               className={styles.primaryActionButton}
@@ -596,6 +546,21 @@ export default function AgendasPage() {
           </div>
         </div>
 
+        {/* Mobile-only: floating "Novo agendamento" button + inline form */}
+        <div className={styles.mobileNewBar}>
+          <button
+            type="button"
+            className={styles.primaryActionButton}
+            onClick={() => {
+              setShowCreateForm((prev) => !prev);
+              setCreateFeedback("");
+            }}
+          >
+            {showCreateForm ? "Fechar criação" : "+ Novo agendamento"}
+          </button>
+        </div>
+
+        {/* ── STATS GRID — hidden on mobile ── */}
         <div className={styles.statsGrid}>
           <article className={`${styles.statCard} ${styles.cardOne}`}>
             <div className={styles.statCardTop}>
@@ -646,6 +611,7 @@ export default function AgendasPage() {
           </article>
         </div>
 
+        {/* ── CREATE FORM ── */}
         {showCreateForm && (
           <section className={styles.createCard}>
             <div className={styles.sectionHeader}>
@@ -653,7 +619,6 @@ export default function AgendasPage() {
                 <span className={styles.sectionEyebrow}>Criação</span>
                 <h3 className={styles.sectionTitle}>Novo agendamento</h3>
               </div>
-
               {selectedService?.duration ? (
                 <span className={styles.serviceDurationBadge}>
                   Duração: {selectedService.duration} min
@@ -675,15 +640,11 @@ export default function AgendasPage() {
                   <span>Profissional</span>
                   <select
                     value={form.professional_id}
-                    onChange={(e) =>
-                      updateField("professional_id", e.target.value)
-                    }
+                    onChange={(e) => updateField("professional_id", e.target.value)}
                   >
                     <option value="">Selecione um profissional</option>
-                    {professionals.map((professional) => (
-                      <option key={professional.id} value={professional.id}>
-                        {getDisplayName(professional)}
-                      </option>
+                    {professionals.map((p) => (
+                      <option key={p.id} value={p.id}>{getDisplayName(p)}</option>
                     ))}
                   </select>
                 </label>
@@ -695,10 +656,8 @@ export default function AgendasPage() {
                     onChange={(e) => updateField("client_id", e.target.value)}
                   >
                     <option value="">Selecione um cliente</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {getDisplayName(client)}
-                      </option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{getDisplayName(c)}</option>
                     ))}
                   </select>
                 </label>
@@ -710,10 +669,8 @@ export default function AgendasPage() {
                     onChange={(e) => updateField("service_id", e.target.value)}
                   >
                     <option value="">Selecione um serviço</option>
-                    {services.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {getDisplayName(service)}
-                      </option>
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>{getDisplayName(s)}</option>
                     ))}
                   </select>
                 </label>
@@ -741,15 +698,11 @@ export default function AgendasPage() {
                 <button
                   type="button"
                   className={styles.ghostButton}
-                  onClick={() => {
-                    resetCreateForm();
-                    setShowCreateForm(false);
-                  }}
+                  onClick={() => { resetCreateForm(); setShowCreateForm(false); }}
                   disabled={creatingAppointment}
                 >
                   Cancelar
                 </button>
-
                 <button
                   type="button"
                   className={styles.primaryActionButton}
@@ -763,13 +716,13 @@ export default function AgendasPage() {
           </section>
         )}
 
+        {/* ── ACTIVE APPOINTMENTS ── */}
         <section className={styles.panel}>
           <div className={styles.sectionHeader}>
             <div>
               <span className={styles.sectionEyebrow}>Em andamento</span>
               <h3 className={styles.sectionTitle}>Agendamentos ativos</h3>
             </div>
-
             <div className={styles.filters}>
               <input
                 className={styles.searchInput}
@@ -777,7 +730,6 @@ export default function AgendasPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-
               <select
                 className={styles.statusFilter}
                 value={statusFilter}
@@ -818,83 +770,59 @@ export default function AgendasPage() {
                     <th>Ações</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredVisible.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <div className={styles.clientCell}>
-                          <div className={styles.clientAvatar}>
-                            {initials(item.client)}
-                          </div>
+                          <div className={styles.clientAvatar}>{initials(item.client)}</div>
                           <span>{item.client}</span>
                         </div>
                       </td>
-
                       <td>{item.professional}</td>
-
-                      <td>
-                        <span className={styles.serviceTag}>{item.service}</span>
-                      </td>
-
+                      <td><span className={styles.serviceTag}>{item.service}</span></td>
                       <td className={styles.monoCell}>{item.date}</td>
-
                       <td className={styles.monoCell}>
                         {item.endTime && item.endTime !== "--:--"
                           ? `${item.time} - ${item.endTime}`
                           : item.time}
                       </td>
-
                       <td>
                         <span className={getStatusClass(item.status)}>
                           {getStatusLabel(item.status)}
                         </span>
                       </td>
-
                       <td>
                         <div className={styles.actions}>
                           <button
                             type="button"
                             className={styles.viewButton}
-                            onClick={() => {
-                              setSelected(item);
-                              setEditMode(false);
-                            }}
+                            onClick={() => { setSelected(item); setEditMode(false); }}
                           >
                             Ver
                           </button>
-
                           <button
                             type="button"
                             className={styles.editButton}
-                            onClick={() => {
-                              setSelected(item);
-                              setEditMode(true);
-                            }}
+                            onClick={() => { setSelected(item); setEditMode(true); }}
                           >
                             Editar
                           </button>
-
                           <button
                             type="button"
                             className={styles.completeButton}
                             onClick={() => handleQuickComplete(item.id)}
                             disabled={quickCompletingId === item.id}
                           >
-                            {quickCompletingId === item.id
-                              ? "Concluindo..."
-                              : "Concluir"}
+                            {quickCompletingId === item.id ? "Concluindo..." : "Concluir"}
                           </button>
-
                           <button
                             type="button"
                             className={styles.softDangerButton}
                             onClick={() => handleQuickCancel(item.id)}
                             disabled={quickCancellingId === item.id}
                           >
-                            {quickCancellingId === item.id
-                              ? "Cancelando..."
-                              : "Cancelar"}
+                            {quickCancellingId === item.id ? "Cancelando..." : "Cancelar"}
                           </button>
                         </div>
                       </td>
@@ -906,12 +834,18 @@ export default function AgendasPage() {
           )}
         </section>
 
+        {/* ── HISTORY ── */}
         <section className={styles.panel}>
           <div className={styles.sectionHeader}>
             <div>
               <span className={styles.sectionEyebrow}>Histórico</span>
               <h3 className={styles.sectionTitle}>Concluídos e cancelados</h3>
             </div>
+            {!loading && filteredHistory.length > 0 && (
+              <span className={styles.historyCount}>
+                {filteredHistory.length} registro{filteredHistory.length !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
 
           {loading ? (
@@ -924,58 +858,83 @@ export default function AgendasPage() {
               Nenhum agendamento concluído ou cancelado.
             </p>
           ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Profissional</th>
-                    <th>Serviço</th>
-                    <th>Data</th>
-                    <th>Hora</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
+            <>
+              {/* Scrollable history table */}
+              <div className={styles.historyWrap}>
+                <div
+                  ref={historyListRef}
+                  className={styles.historyScroll}
+                  onScroll={handleHistoryScroll}
+                >
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Profissional</th>
+                        <th>Serviço</th>
+                        <th>Data</th>
+                        <th>Hora</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleHistory.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <div className={styles.clientCell}>
+                              <div className={styles.clientAvatar}>{initials(item.client)}</div>
+                              <span>{item.client}</span>
+                            </div>
+                          </td>
+                          <td>{item.professional}</td>
+                          <td><span className={styles.serviceTag}>{item.service}</span></td>
+                          <td className={styles.monoCell}>{item.date}</td>
+                          <td className={styles.monoCell}>
+                            {item.endTime && item.endTime !== "--:--"
+                              ? `${item.time} - ${item.endTime}`
+                              : item.time}
+                          </td>
+                          <td>
+                            <span className={getStatusClass(item.status)}>
+                              {getStatusLabel(item.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-                <tbody>
-                  {filteredHistory.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div className={styles.clientCell}>
-                          <div className={styles.clientAvatar}>
-                            {initials(item.client)}
-                          </div>
-                          <span>{item.client}</span>
-                        </div>
-                      </td>
+                {/* Bottom fade when more rows are hidden */}
+                {hasMoreHistory && (
+                  <div
+                    className={styles.historyFade}
+                    style={{ opacity: historyAtBottom ? 0 : 1 }}
+                  />
+                )}
+              </div>
 
-                      <td>{item.professional}</td>
-
-                      <td>
-                        <span className={styles.serviceTag}>{item.service}</span>
-                      </td>
-
-                      <td className={styles.monoCell}>{item.date}</td>
-
-                      <td className={styles.monoCell}>
-                        {item.endTime && item.endTime !== "--:--"
-                          ? `${item.time} - ${item.endTime}`
-                          : item.time}
-                      </td>
-
-                      <td>
-                        <span className={getStatusClass(item.status)}>
-                          {getStatusLabel(item.status)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              {/* Load more bar */}
+              {hasMoreHistory && (
+                <div className={styles.loadMoreBar}>
+                  <button
+                    type="button"
+                    className={styles.loadMoreBtn}
+                    onClick={handleLoadMoreHistory}
+                  >
+                    <span className={styles.loadMoreIcon}>↓</span>
+                    Ver mais registros
+                  </button>
+                  <span className={styles.loadMoreCount}>
+                    +{historyRemaining} registro{historyRemaining !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </section>
 
+        {/* ── MODAL ── */}
         {selected && (
           <div
             className={styles.modalOverlay}
@@ -994,14 +953,10 @@ export default function AgendasPage() {
                   </p>
                   <h3>{selected.client}</h3>
                 </div>
-
                 <button
                   type="button"
                   className={styles.modalClose}
-                  onClick={() => {
-                    setSelected(null);
-                    setEditMode(false);
-                  }}
+                  onClick={() => { setSelected(null); setEditMode(false); }}
                 >
                   ✕
                 </button>
@@ -1011,23 +966,16 @@ export default function AgendasPage() {
                 <div className={styles.modalGrid}>
                   <div className={styles.modalField}>
                     <span className={styles.modalFieldLabel}>Profissional</span>
-                    <span className={styles.modalFieldValue}>
-                      {selected.professional}
-                    </span>
+                    <span className={styles.modalFieldValue}>{selected.professional}</span>
                   </div>
-
                   <div className={styles.modalField}>
                     <span className={styles.modalFieldLabel}>Serviço</span>
-                    <span className={styles.modalFieldValue}>
-                      {selected.service}
-                    </span>
+                    <span className={styles.modalFieldValue}>{selected.service}</span>
                   </div>
-
                   <div className={styles.modalField}>
                     <span className={styles.modalFieldLabel}>Data</span>
                     <span className={styles.modalFieldValue}>{selected.date}</span>
                   </div>
-
                   <div className={styles.modalField}>
                     <span className={styles.modalFieldLabel}>Hora</span>
                     <span className={styles.modalFieldValue}>
@@ -1055,7 +1003,6 @@ export default function AgendasPage() {
                         <option value="cancelled">Cancelado</option>
                       </select>
                     </div>
-
                     <div className={styles.modalActions}>
                       <button
                         type="button"
@@ -1065,7 +1012,6 @@ export default function AgendasPage() {
                       >
                         {savingStatus ? "Processando..." : "Concluir"}
                       </button>
-
                       <button
                         type="button"
                         className={styles.softDangerButton}
@@ -1074,19 +1020,14 @@ export default function AgendasPage() {
                       >
                         {savingStatus ? "Processando..." : "Cancelar agendamento"}
                       </button>
-
                       <button
                         type="button"
                         className={styles.ghostButton}
-                        onClick={() => {
-                          setSelected(null);
-                          setEditMode(false);
-                        }}
+                        onClick={() => { setSelected(null); setEditMode(false); }}
                         disabled={savingStatus}
                       >
                         Fechar
                       </button>
-
                       <button
                         type="button"
                         className={styles.primaryActionButton}
@@ -1105,19 +1046,14 @@ export default function AgendasPage() {
                         {getStatusLabel(selected.status)}
                       </span>
                     </div>
-
                     <div className={styles.modalActions}>
                       <button
                         type="button"
                         className={styles.ghostButton}
-                        onClick={() => {
-                          setSelected(null);
-                          setEditMode(false);
-                        }}
+                        onClick={() => { setSelected(null); setEditMode(false); }}
                       >
                         Fechar
                       </button>
-
                       <button
                         type="button"
                         className={styles.editButton}
@@ -1132,6 +1068,7 @@ export default function AgendasPage() {
             </div>
           </div>
         )}
+
       </section>
     </LayoutShell>
   );

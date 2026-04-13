@@ -22,6 +22,8 @@
   gap: 22px;
 }
 
+/* ── HERO ── */
+
 .hero {
   position: relative;
   overflow: hidden;
@@ -91,6 +93,18 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Desktop-only: hero button */
+.heroActionsDesktop {
+  display: flex;
+}
+
+/* Mobile-only: standalone "Novo agendamento" bar below hero */
+.mobileNewBar {
+  display: none;
+}
+
+/* ── STATS GRID ── */
 
 .statsGrid {
   display: grid;
@@ -169,6 +183,8 @@
   color: var(--text-main);
 }
 
+/* ── PANELS ── */
+
 .createCard,
 .panel {
   background: linear-gradient(180deg, rgba(42, 50, 49, 0.98), rgba(31, 38, 37, 0.98));
@@ -204,7 +220,8 @@
   color: var(--text-main);
 }
 
-.serviceDurationBadge {
+.serviceDurationBadge,
+.historyCount {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -217,7 +234,10 @@
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.05em;
+  flex-shrink: 0;
 }
+
+/* ── CREATE FORM ── */
 
 .createForm {
   padding: 24px;
@@ -311,6 +331,8 @@
   min-width: 240px;
 }
 
+/* ── FEEDBACK ── */
+
 .feedbackInfo,
 .feedbackWarning {
   margin: 0;
@@ -325,6 +347,8 @@
 .feedbackWarning {
   color: #f0d7d7;
 }
+
+/* ── STATES ── */
 
 .loadingState {
   padding: 28px 24px 24px;
@@ -351,6 +375,8 @@
   color: var(--text-muted);
   font-size: 0.92rem;
 }
+
+/* ── TABLE ── */
 
 .tableWrapper {
   overflow-x: auto;
@@ -423,6 +449,92 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
+
+/* ── HISTORY SCROLL + LOAD MORE ── */
+
+.historyWrap {
+  position: relative;
+}
+
+.historyScroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(227, 227, 209, 0.18) transparent;
+}
+
+.historyScroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.historyScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.historyScroll::-webkit-scrollbar-thumb {
+  background: rgba(227, 227, 209, 0.2);
+  border-radius: 4px;
+}
+
+.historyFade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: linear-gradient(to bottom, transparent, rgba(31, 38, 37, 0.97));
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.loadMoreBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px 16px;
+  border-top: 1px solid rgba(227, 227, 209, 0.06);
+}
+
+.loadMoreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(227, 227, 209, 0.07);
+  border: 1px solid rgba(227, 227, 209, 0.14);
+  color: #e3e3d1;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+
+.loadMoreBtn:hover {
+  background: rgba(227, 227, 209, 0.12);
+  transform: translateY(-1px);
+}
+
+.loadMoreBtn:active {
+  transform: scale(0.98);
+}
+
+.loadMoreIcon {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.loadMoreCount {
+  font-size: 0.75rem;
+  color: #7c8a6e;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── BUTTONS ── */
 
 .primaryActionButton,
 .secondaryActionButton,
@@ -506,6 +618,8 @@
   transform: none;
 }
 
+/* ── STATUS BADGES ── */
+
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -543,6 +657,8 @@
   background: rgba(111, 77, 77, 0.3);
   color: #f0d7d7;
 }
+
+/* ── MODAL ── */
 
 .modalOverlay {
   position: fixed;
@@ -637,6 +753,8 @@
   font-size: 0.92rem;
 }
 
+/* ── RESPONSIVE ── */
+
 @media (max-width: 1280px) {
   .statsGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -654,7 +772,30 @@
   }
 }
 
+/* ── MOBILE: hide stats, swap hero button for bar ── */
 @media (max-width: 640px) {
+  /* Hide stat cards entirely on mobile */
+  .statsGrid {
+    display: none;
+  }
+
+  /* Hide the hero action button on mobile */
+  .heroActionsDesktop {
+    display: none;
+  }
+
+  /* Show the mobile bar with the button */
+  .mobileNewBar {
+    display: flex;
+  }
+
+  .mobileNewBar .primaryActionButton {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+    font-size: 0.92rem;
+  }
+
   .hero,
   .createForm {
     padding: 18px;
@@ -678,10 +819,7 @@
   .searchInput,
   .statusFilter {
     width: 100%;
-  }
-
-  .statsGrid {
-    grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .actions,
@@ -698,5 +836,39 @@
   .softDangerButton,
   .completeButton {
     width: 100%;
+  }
+
+  .historyScroll {
+    max-height: 280px;
+  }
+
+  .loadMoreBar {
+    flex-direction: column;
+    padding: 12px 18px 14px;
+    gap: 6px;
+  }
+
+  .loadMoreBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .loadMoreCount {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.25rem;
+  }
+
+  .heroDescription {
+    font-size: 0.88rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 12px 16px;
   }
 }

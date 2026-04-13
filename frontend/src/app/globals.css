@@ -430,14 +430,16 @@ textarea {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  padding: 22px 24px 24px;
+  /* ↑ Increased gap for breathing room between cards */
+  gap: 18px;
+  padding: 22px 24px 26px;
   min-width: 0;
 }
 
 .summary-card {
   border-radius: 18px;
-  padding: 18px 20px;
+  /* ↑ Increased padding for more internal space */
+  padding: 20px 20px 18px;
   border: 1px solid rgba(227, 227, 209, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
@@ -556,14 +558,101 @@ textarea {
   }
 }
 
-/* ── APPOINTMENTS ── */
+/* ── APPOINTMENTS SCROLL WRAPPER ── */
 
+.appointments-list-wrap {
+  position: relative;
+}
+
+/* Scrollable container — limited height */
 .appointments-list {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
-  min-width: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  /* Thin, subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(227, 227, 209, 0.18) transparent;
 }
+
+.appointments-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.appointments-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.appointments-list::-webkit-scrollbar-thumb {
+  background: rgba(227, 227, 209, 0.2);
+  border-radius: 4px;
+}
+
+/* Fade overlay at bottom — indicates more content */
+.appointments-fade-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(31, 38, 37, 0.97)
+  );
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* ── LOAD MORE BAR ── */
+
+.load-more-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px 16px;
+  border-top: 1px solid rgba(227, 227, 209, 0.06);
+}
+
+.load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(227, 227, 209, 0.07);
+  border: 1px solid rgba(227, 227, 209, 0.14);
+  color: #e3e3d1;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+
+.load-more-btn:hover {
+  background: rgba(227, 227, 209, 0.12);
+  transform: translateY(-1px);
+}
+
+.load-more-btn:active {
+  transform: scale(0.98);
+}
+
+.load-more-btn__icon {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.load-more-count {
+  font-size: 0.75rem;
+  color: #7c8a6e;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── APPOINTMENTS LIST ITEMS ── */
 
 .appointment-item {
   display: flex;
@@ -770,6 +859,11 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .summary-grid {
+    gap: 12px;
+    padding: 16px;
+  }
+
   .content-area {
     padding: 16px;
   }
@@ -795,11 +889,6 @@ textarea {
     padding: 16px;
   }
 
-  .summary-grid {
-    padding: 16px;
-    gap: 12px;
-  }
-
   .card {
     padding: 18px 16px;
     border-radius: 18px;
@@ -810,7 +899,7 @@ textarea {
   }
 
   .appointments-list {
-    padding: 0;
+    max-height: 280px;
   }
 
   .appointment-item {
@@ -828,6 +917,22 @@ textarea {
   .appt-time {
     font-size: 0.8rem;
     align-self: flex-start;
+  }
+
+  .load-more-bar {
+    padding: 12px 16px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .load-more-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .load-more-count {
+    width: 100%;
+    text-align: center;
   }
 
   .empty-state,
@@ -875,6 +980,7 @@ textarea {
 
   .summary-grid {
     padding: 14px;
+    gap: 10px;
   }
 
   .appointment-item {

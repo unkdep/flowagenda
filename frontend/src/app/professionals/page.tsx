@@ -25,6 +25,8 @@ const initialForm: FormDataType = {
   active: true,
 };
 
+const PAGE_SIZE = 6;
+
 function initials(name: string) {
   if (!name) return "?";
 
@@ -46,6 +48,7 @@ export default function ProfessionalsPage() {
     type: "success" | "error";
   } | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   async function fetchProfessionals() {
     const data = await apiFetch<Professional[]>("/api/professionals/");
@@ -203,13 +206,20 @@ export default function ProfessionalsPage() {
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
-
+    setPage(1);
     return professionals.filter(
       (item) =>
         item.name.toLowerCase().includes(term) ||
         (item.specialty ?? "").toLowerCase().includes(term)
     );
   }, [professionals, search]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   return (
     <LayoutShell eyebrow="Cadastros" title="Profissionais">
@@ -250,6 +260,7 @@ export default function ProfessionalsPage() {
           </div>
         </div>
 
+        {/* Stats cards — hidden on mobile via CSS */}
         <div className={styles.statsGrid}>
           <article className={`${styles.statCard} ${styles.accentOne}`}>
             <div className={styles.statCardTop}>
@@ -382,53 +393,103 @@ export default function ProfessionalsPage() {
                 : "Nenhum profissional cadastrado."}
             </p>
           ) : (
-            <div className={styles.list}>
-              {filtered.map((item) => (
-                <article key={item.id} className={styles.card}>
-                  <div className={styles.cardLeft}>
-                    <div className={styles.cardAvatar}>{initials(item.name)}</div>
+            <>
+              <div className={styles.list}>
+                {paginated.map((item) => (
+                  <article key={item.id} className={styles.card}>
+                    <div className={styles.cardLeft}>
+                      <div className={styles.cardAvatar}>{initials(item.name)}</div>
 
-                    <div className={styles.cardContent}>
-                      <div className={styles.cardTop}>
-                        <strong>{item.name}</strong>
+                      <div className={styles.cardContent}>
+                        <div className={styles.cardTop}>
+                          <strong>{item.name}</strong>
 
-                        <span
-                          className={`${styles.badge} ${
-                            item.active
-                              ? styles.badgeActive
-                              : styles.badgeInactive
-                          }`}
-                        >
-                          {item.active ? "Ativo" : "Inativo"}
-                        </span>
+                          <span
+                            className={`${styles.badge} ${
+                              item.active
+                                ? styles.badgeActive
+                                : styles.badgeInactive
+                            }`}
+                          >
+                            {item.active ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+
+                        <p className={styles.cardMeta}>
+                          {item.specialty || "Especialidade não informada"}
+                        </p>
                       </div>
-
-                      <p className={styles.cardMeta}>
-                        {item.specialty || "Especialidade não informada"}
-                      </p>
                     </div>
+
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={() => setSelected(item)}
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.dangerButton}
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    aria-label="Página anterior"
+                  >
+                    ←
+                  </button>
+
+                  <div className={styles.pageNumbers}>
+                    {Array.from({ length: totalPages }).map((_, i) => {
+                      const n = i + 1;
+                      const isNear = Math.abs(n - page) <= 1 || n === 1 || n === totalPages;
+                      if (!isNear) {
+                        if (n === page - 2 || n === page + 2) {
+                          return <span key={n} className={styles.pageDots}>…</span>;
+                        }
+                        return null;
+                      }
+                      return (
+                        <button
+                          key={n}
+                          className={`${styles.pageBtn} ${n === page ? styles.pageBtnActive : ""}`}
+                          onClick={() => setPage(n)}
+                        >
+                          {n}
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => setSelected(item)}
-                    >
-                      Editar
-                    </button>
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    aria-label="Próxima página"
+                  >
+                    →
+                  </button>
 
-                    <button
-                      type="button"
-                      className={styles.dangerButton}
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  <span className={styles.pageInfo}>
+                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </section>
 
